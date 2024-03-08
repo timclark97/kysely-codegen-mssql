@@ -1,5 +1,6 @@
 import { MssqlDialect as KyselyMssqlDialect } from 'kysely';
-import { CreateKyselyDialectOptions, Dialect } from '../../core';
+import type { CreateKyselyDialectOptions } from '../../core';
+import { Dialect } from '../../core';
 import { MssqlAdapter } from './mssql-adapter';
 import { MssqlIntrospector } from './mssql-introspector';
 
