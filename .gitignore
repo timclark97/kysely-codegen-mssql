@@ -6,3 +6,5 @@
 **/*.tsbuildinfo
 **/.env
 .vscode/settings.json
+output/
+gen/
