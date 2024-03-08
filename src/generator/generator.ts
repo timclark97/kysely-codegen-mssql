@@ -9,6 +9,7 @@ import { Transformer } from '../transformer';
 
 export type GenerateOptions = {
   camelCase?: boolean;
+  lowerCase?: boolean;
   db: Kysely<any>;
   dialect: Dialect;
   excludePattern?: string;
@@ -50,6 +51,7 @@ export class Generator {
     const transformer = options.transformer ?? new Transformer();
     const nodes = transformer.transform({
       camelCase: !!options.camelCase,
+      lowerCase: !!options.lowerCase,
       defaultSchema: options.schema,
       dialect: options.dialect,
       metadata,

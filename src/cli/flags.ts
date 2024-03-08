@@ -12,6 +12,10 @@ export const FLAGS: Flag[] = [
     longName: 'camel-case',
   },
   {
+    description: 'Convert table and column names to lower case.',
+    longName: 'lower-case',
+  },
+  {
     description: `Set the SQL dialect. (values: [${VALID_DIALECTS.join(
       ', ',
     )}])`,

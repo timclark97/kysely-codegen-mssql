@@ -29,6 +29,7 @@ export type CliOptions = {
   typeOnlyImports?: boolean;
   url: string;
   verify?: boolean | undefined;
+  lowerCaseFields?: boolean | undefined
 };
 
 export type LogLevelName = (typeof LOG_LEVEL_NAMES)[number];
@@ -44,7 +45,7 @@ export class Cli {
     const includePattern = options.includePattern;
     const schema = options.schema;
     const typeOnlyImports = options.typeOnlyImports;
-
+    const lowerCase = options.lowerCaseFields;
     const logger = new Logger(options.logLevel);
 
     const connectionStringParser = new ConnectionStringParser();
@@ -76,6 +77,7 @@ export class Cli {
 
     await generator.generate({
       camelCase,
+      lowerCase,
       db,
       dialect,
       excludePattern,
@@ -147,6 +149,7 @@ export class Cli {
 
     const _: string[] = argv._;
     const camelCase = this.#parseBoolean(argv['camel-case']);
+    const lowerCase = this.#parseBoolean(argv['lower-case'])
     const dialectName = argv.dialect;
     const help =
       !!argv.h || !!argv.help || _.includes('-h') || _.includes('--help');
@@ -193,6 +196,10 @@ export class Cli {
             '  --url=env(DATABASE_URL)',
         );
       }
+
+      if (camelCase && lowerCase) {
+        throw new Error('Cannot use --camel-case and --lower-case at the same time.')
+      }
     } catch (error) {
       if (logLevel > LogLevel.SILENT) {
         if (error instanceof Error) {
@@ -223,6 +230,7 @@ export class Cli {
       typeOnlyImports,
       url,
       verify,
+      lowerCaseFields: lowerCase
     };
   }
 
