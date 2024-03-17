@@ -196,10 +196,6 @@ export class Cli {
             '  --url=env(DATABASE_URL)',
         );
       }
-
-      if (camelCase && lowerCase) {
-        throw new Error('Cannot use --camel-case and --lower-case at the same time.')
-      }
     } catch (error) {
       if (logLevel > LogLevel.SILENT) {
         if (error instanceof Error) {

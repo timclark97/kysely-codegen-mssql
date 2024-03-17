@@ -42,7 +42,7 @@ const unionize = (args: ExpressionNode[]) => {
 
 export type TransformContext = {
   camelCase: boolean;
-  lowerCase:boolean;
+  lowerCase: boolean;
   defaultScalar: ExpressionNode;
   defaultSchema: string | null;
   definitions: Definitions;
@@ -146,6 +146,7 @@ export class Transformer {
   #createContext(options: TransformOptions): TransformContext {
     return {
       camelCase: options.camelCase,
+      lowerCase: options.lowerCase,
       defaultScalar:
         options.dialect.adapter.defaultScalar ?? new IdentifierNode('unknown'),
       defaultSchema:
@@ -312,13 +313,14 @@ export class Transformer {
   }
 
   #transformName(name: string, context: TransformContext) {
-    if (context.camelCase){
-      toCamelCase(name)
-    } else if (context.lowerCase) {
-      return name.toLowerCase();
-    } else {
-      return name;
+    let transformed = name;
+    if (context.lowerCase) {
+      transformed = name.toLowerCase();
     }
+    if (context.camelCase) {
+      transformed = toCamelCase(transformed);
+    }
+    return transformed;
   }
 
   #transformTables(context: TransformContext) {
