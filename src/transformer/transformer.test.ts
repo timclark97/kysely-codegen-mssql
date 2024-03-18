@@ -31,11 +31,15 @@ export const testTransformer = () => {
       'public.mood_': ['', ',', "'", "'','"],
     });
 
-    const transform = (tables: TableMetadata[], camelCase: boolean) => {
+    const transform = (
+      tables: TableMetadata[],
+      camelCase: boolean,
+      lowerCase = false,
+    ) => {
       const dialect = new PostgresDialect();
       const transformer = new Transformer();
       const metadata = new DatabaseMetadata(tables, enums);
-      return transformer.transform({ camelCase, dialect, metadata });
+      return transformer.transform({ camelCase, lowerCase, dialect, metadata });
     };
 
     void it('should transform correctly', () => {

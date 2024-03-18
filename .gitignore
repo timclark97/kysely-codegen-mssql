@@ -9,3 +9,4 @@
 output/
 gen/
 .vscode/settings.json
+gen/vis-full-db.d.ts

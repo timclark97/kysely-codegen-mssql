@@ -315,7 +315,10 @@ export class Transformer {
   #transformName(name: string, context: TransformContext) {
     let transformed = name;
     if (context.lowerCase) {
-      transformed = name.toLowerCase();
+      // only lowercase if orig string is UPPER_SNAKE_CASE (not camel/pascal case)
+      if (/^[A-Z0-9]+(_[A-Z0-9]+)*$/.test(name)) {
+        transformed = name.toLowerCase();
+      }
     }
     if (context.camelCase) {
       transformed = toCamelCase(transformed);
@@ -330,8 +333,7 @@ export class Transformer {
       const tableProperties: PropertyNode[] = [];
 
       for (const column of table.columns) {
-        const lowerColumnName = column.name.toLowerCase();
-        const key = this.#transformName(lowerColumnName, context);
+        const key = this.#transformName(column.name, context);
         const value = this.#transformColumn(column, context);
         const tableProperty = new PropertyNode(key, value);
         tableProperties.push(tableProperty);
