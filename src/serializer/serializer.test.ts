@@ -14,6 +14,7 @@ import {
   MappedTypeNode,
   ObjectExpressionNode,
   PropertyNode,
+  RuntimeEnumDeclarationNode,
   TemplateNode,
   UnionExpressionNode,
 } from '../ast';
@@ -276,10 +277,8 @@ export const testSerializer = () => {
               new TableMetadata({
                 columns: [
                   new ColumnMetadata({
+                    comment: 'Hello!\nThis is a comment.',
                     dataType: 'json',
-                    hasDefaultValue: false,
-                    isAutoIncrementing: false,
-                    isNullable: false,
                     name: 'json',
                   }),
                 ],
@@ -308,6 +307,10 @@ export const testSerializer = () => {
             'export type JsonValue = JsonArray | JsonObject | JsonPrimitive;\n' +
             '\n' +
             'export interface Foo {\n' +
+            '  /**\n' +
+            '   * Hello!\n' +
+            '   * This is a comment.\n' +
+            '   */\n' +
             '  json: Json;\n' +
             '}\n' +
             '\n' +
@@ -331,13 +334,7 @@ export const testSerializer = () => {
             [
               new TableMetadata({
                 columns: [
-                  new ColumnMetadata({
-                    dataType: 'json',
-                    hasDefaultValue: false,
-                    isAutoIncrementing: false,
-                    isNullable: false,
-                    name: 'json',
-                  }),
+                  new ColumnMetadata({ dataType: 'json', name: 'json' }),
                 ],
                 name: 'foo',
                 schema: 'public',
@@ -370,6 +367,28 @@ export const testSerializer = () => {
             '}\n',
         );
       });
+    });
+
+    void describe('serialize', () => {
+      const enumSerializer = new Serializer({ camelCase: true });
+      void it('should serialize runtime enums properly', () =>
+        strictEqual(
+          enumSerializer.serializeRuntimeEnum(
+            new RuntimeEnumDeclarationNode(
+              'Mood',
+              new UnionExpressionNode([
+                new LiteralNode('sad'),
+                new LiteralNode('happy'),
+                new LiteralNode('happy_or_sad'),
+              ]),
+            ),
+          ),
+          'enum Mood {\n' +
+            '  happy = "happy",\n' +
+            '  happyOrSad = "happy_or_sad",\n' +
+            '  sad = "sad",\n' +
+            '}',
+        ));
     });
   });
 };

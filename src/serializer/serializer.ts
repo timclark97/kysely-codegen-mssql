@@ -14,14 +14,17 @@ import type {
   MappedTypeNode,
   ObjectExpressionNode,
   PropertyNode,
+  RuntimeEnumDeclarationNode,
   StatementNode,
   UnionExpressionNode,
 } from '../ast';
 import { NodeType } from '../ast';
+import { toCamelCase } from '../transformer';
 
 const IDENTIFIER_REGEXP = /^[$A-Z_a-z][\w$]*$/;
 
 export type SerializerOptions = {
+  camelCase?: boolean;
   typeOnlyImports?: boolean;
 };
 
@@ -29,9 +32,11 @@ export type SerializerOptions = {
  * Creates a TypeScript output string from a codegen AST.
  */
 export class Serializer {
+  readonly camelCase: boolean;
   readonly typeOnlyImports: boolean;
 
   constructor(options: SerializerOptions = {}) {
+    this.camelCase = options.camelCase ?? false;
     this.typeOnlyImports = options.typeOnlyImports ?? true;
   }
 
@@ -127,6 +132,9 @@ export class Serializer {
         break;
       case NodeType.INTERFACE_DECLARATION:
         data += this.serializeInterfaceDeclaration(node.argument);
+        break;
+      case NodeType.RUNTIME_ENUM_DECLARATION:
+        data += this.serializeRuntimeEnum(node.argument);
         break;
     }
 
@@ -299,10 +307,57 @@ export class Serializer {
   serializeProperty(node: PropertyNode) {
     let data = '';
 
+    if (node.comment) {
+      data += '/**\n';
+
+      for (const line of node.comment.split(/\r?\n/)) {
+        data += `   *${line ? ` ${line}` : ''}\n`;
+      }
+
+      data += '   */\n  ';
+    }
+
     data += this.serializeKey(node.key);
     data += ': ';
     data += this.serializeExpression(node.value);
     data += ';\n';
+
+    return data;
+  }
+
+  serializeRuntimeEnum(node: RuntimeEnumDeclarationNode) {
+    let data = 'enum ';
+
+    data += node.name;
+    data += ' {\n';
+
+    const args =
+      node.body.type === NodeType.UNION_EXPRESSION
+        ? node.body.args
+        : [node.body];
+
+    args.sort((a, b) => {
+      return (a as LiteralNode<string>).value.localeCompare(
+        (b as LiteralNode<string>).value,
+      );
+    });
+
+    for (const arg of args) {
+      if (arg.type === NodeType.LITERAL && typeof arg.value === 'string') {
+        const serializedArg = this.serializeLiteral(arg);
+        const enumValueName = this.camelCase
+          ? toCamelCase(arg.value)
+          : arg.value;
+        data += '  ';
+        data += enumValueName;
+        data += ' = ';
+        data += serializedArg;
+        data += ',';
+        data += '\n';
+      }
+    }
+
+    data += '}';
 
     return data;
   }
