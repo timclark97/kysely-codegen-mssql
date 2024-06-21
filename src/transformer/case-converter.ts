@@ -1,6 +1,9 @@
 import { CamelCasePlugin } from 'kysely';
 
 class CaseConverter extends CamelCasePlugin {
+  constructor() {
+    super({underscoreBeforeDigits:true,});
+  }
   toCamelCase(string: string) {
     return this.camelCase(string);
   }

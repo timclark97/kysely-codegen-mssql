@@ -5,3 +5,8 @@
 **/*.DS_Store
 **/*.tsbuildinfo
 **/.env
+.vscode/settings.json
+output/
+gen/
+.vscode/settings.json
+gen/vis-full-db.d.ts

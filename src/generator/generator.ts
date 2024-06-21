@@ -9,6 +9,7 @@ import { Transformer } from '../transformer';
 
 export type GenerateOptions = {
   camelCase?: boolean;
+  lowerCase?: boolean;
   db: Kysely<any>;
   dialect: Dialect;
   excludePattern?: string;
@@ -16,6 +17,7 @@ export type GenerateOptions = {
   logger?: Logger;
   outFile?: string;
   print?: boolean;
+  runtimeEnums?: boolean;
   schema?: string;
   serializer?: Serializer;
   transformer?: Transformer;
@@ -50,14 +52,19 @@ export class Generator {
     const transformer = options.transformer ?? new Transformer();
     const nodes = transformer.transform({
       camelCase: !!options.camelCase,
+      lowerCase: !!options.lowerCase,
       defaultSchema: options.schema,
       dialect: options.dialect,
       metadata,
+      runtimeEnums: !!options.runtimeEnums,
     });
 
     const serializer =
       options.serializer ??
-      new Serializer({ typeOnlyImports: options.typeOnlyImports });
+      new Serializer({
+        camelCase: !!options.camelCase,
+        typeOnlyImports: options.typeOnlyImports,
+      });
     const data = serializer.serialize(nodes);
 
     const relativeOutDir = options.outFile
