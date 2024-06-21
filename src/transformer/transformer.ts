@@ -12,6 +12,7 @@ import {
   NodeType,
   ObjectExpressionNode,
   PropertyNode,
+  RuntimeEnumDeclarationNode,
   UnionExpressionNode,
 } from '../ast';
 import type {
@@ -49,16 +50,18 @@ export type TransformContext = {
   enums: EnumCollection;
   imports: Imports;
   metadata: DatabaseMetadata;
+  runtimeEnums: boolean;
   scalars: Scalars;
   symbols: SymbolCollection;
 };
 
 export type TransformOptions = {
-  camelCase: boolean;
-  lowerCase: boolean;
+  camelCase?: boolean;
+  lowerCase?: boolean;
   defaultSchema?: string;
   dialect: Dialect;
   metadata: DatabaseMetadata;
+  runtimeEnums?: boolean;
 };
 
 /**
@@ -102,9 +105,9 @@ export class Transformer {
         this.#collectSymbols(node.values, context);
         break;
       case NodeType.EXTENDS_CLAUSE:
-        this.#collectSymbols(node.test, context);
-        this.#collectSymbols(node.consequent, context);
-        this.#collectSymbols(node.alternate, context);
+        this.#collectSymbols(node.extendsType, context);
+        this.#collectSymbols(node.trueType, context);
+        this.#collectSymbols(node.falseType, context);
         break;
       case NodeType.GENERIC_EXPRESSION: {
         this.#collectSymbol(node.name, context);
@@ -145,8 +148,8 @@ export class Transformer {
 
   #createContext(options: TransformOptions): TransformContext {
     return {
-      camelCase: options.camelCase,
-      lowerCase: options.lowerCase,
+      camelCase: !!options.camelCase,
+      lowerCase: !!options.lowerCase,
       defaultScalar:
         options.dialect.adapter.defaultScalar ?? new IdentifierNode('unknown'),
       defaultSchema:
@@ -161,6 +164,7 @@ export class Transformer {
         ...options.dialect.adapter.imports,
       },
       metadata: options.metadata,
+      runtimeEnums: !!options.runtimeEnums,
       scalars: {
         ...options.dialect.adapter.scalars,
       },
@@ -187,6 +191,22 @@ export class Transformer {
     const body = new ObjectExpressionNode(tableProperties);
     const argument = new InterfaceDeclarationNode('DB', body);
     return new ExportStatementNode(argument);
+  }
+
+  #createRuntimeEnumDefinitionNodes(context: TransformContext) {
+    const runtimeEnumDefinitionNodes: ExportStatementNode[] = [];
+
+    for (const { name, symbol } of context.symbols.entries()) {
+      if (symbol.type === SymbolType.RUNTIME_ENUM_DEFINITION) {
+        const argument = new RuntimeEnumDeclarationNode(name, symbol.node);
+        const runtimeEnumDefinitionNode = new ExportStatementNode(argument);
+        runtimeEnumDefinitionNodes.push(runtimeEnumDefinitionNode);
+      }
+    }
+
+    return runtimeEnumDefinitionNodes.sort((a, b) => {
+      return a.argument.name.localeCompare(b.argument.name);
+    });
   }
 
   #createDefinitionNodes(context: TransformContext) {
@@ -288,7 +308,9 @@ export class Transformer {
       const enumNode = unionize(this.#transformEnum(enumValues));
       const symbolName = context.symbols.set(symbolId, {
         node: enumNode,
-        type: SymbolType.DEFINITION,
+        type: context.runtimeEnums
+          ? SymbolType.RUNTIME_ENUM_DEFINITION
+          : SymbolType.DEFINITION,
       });
       const node = new IdentifierNode(symbolName);
       return [node];
@@ -335,7 +357,8 @@ export class Transformer {
       for (const column of table.columns) {
         const key = this.#transformName(column.name, context);
         const value = this.#transformColumn(column, context);
-        const tableProperty = new PropertyNode(key, value);
+        const comment = column.comment;
+        const tableProperty = new PropertyNode(key, value, comment);
         tableProperties.push(tableProperty);
       }
 
@@ -359,9 +382,17 @@ export class Transformer {
     const context = this.#createContext(options);
     const tableNodes = this.#transformTables(context);
     const importNodes = this.#createImportNodes(context);
+    const runtimeEnumDefinitionNodes =
+      this.#createRuntimeEnumDefinitionNodes(context);
     const definitionNodes = this.#createDefinitionNodes(context);
     const databaseNode = this.#createDatabaseExportNode(context);
 
-    return [...importNodes, ...definitionNodes, ...tableNodes, databaseNode];
+    return [
+      ...importNodes,
+      ...runtimeEnumDefinitionNodes,
+      ...definitionNodes,
+      ...tableNodes,
+      databaseNode,
+    ];
   }
 }
